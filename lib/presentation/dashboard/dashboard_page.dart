@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_formatter.dart';
+import '../../main.dart';
 import '../../providers/wallet_provider.dart';
 import '../../providers/transaction_provider.dart';
 import '../../providers/user_preferences_provider.dart';
 import '../widgets/total_balance_card.dart';
 import '../widgets/wallet_card.dart';
 import '../widgets/transaction_item.dart';
+import '../widgets/transaction_detail_sheet.dart';
 import '../transaction/add_transaction_page.dart';
-import '../wallet/wallet_list_page.dart';
+import '../../data/local/daos/transaction_dao.dart';
 
 class DashboardPage extends ConsumerWidget {
   const DashboardPage({super.key});
@@ -41,7 +43,7 @@ class DashboardPage extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Selamat datang 👋',
+                          'Selamat datang',
                           style:
                               Theme.of(context).textTheme.bodySmall?.copyWith(
                                     color: AppColors.textSecondary,
@@ -112,8 +114,17 @@ class DashboardPage extends ConsumerWidget {
                           ref.read(balanceVisibleProvider.notifier).toggle(),
                     ),
                   ),
-                  loading: () => const _LoadingCard(height: 180),
-                  error: (e, _) => const _ErrorCard(),
+                  loading: () => const _LoadingCard(
+                    height: 180,
+                    label: 'Memuat saldo...',
+                  ),
+                  error: (e, _) => _ErrorCard(
+                    label: 'Gagal memuat saldo',
+                    onRetry: () {
+                      ref.invalidate(totalBalanceProvider);
+                      ref.invalidate(monthlySummaryProvider);
+                    },
+                  ),
                 ),
               ),
             ),
@@ -153,11 +164,8 @@ class DashboardPage extends ConsumerWidget {
                       ],
                     ),
                     TextButton(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const WalletListPage()),
-                      ),
+                      onPressed: () =>
+                          ref.read(bottomNavIndexProvider.notifier).state = 3,
                       child: const Text('Lihat Semua'),
                     ),
                   ],
@@ -170,11 +178,9 @@ class DashboardPage extends ConsumerWidget {
                 firstChild: walletsAsync.when(
                   data: (walletList) => walletList.isEmpty
                       ? _EmptyWallets(
-                          onAdd: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const WalletListPage()),
-                          ),
+                          onAdd: () => ref
+                              .read(bottomNavIndexProvider.notifier)
+                              .state = 3,
                         )
                       : SizedBox(
                           height: 140,
@@ -189,8 +195,20 @@ class DashboardPage extends ConsumerWidget {
                             ),
                           ),
                         ),
-                  loading: () => const _LoadingCard(height: 130),
-                  error: (e, _) => const _ErrorCard(),
+                  loading: () => const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    child: _LoadingCard(
+                      height: 130,
+                      label: 'Memuat wallet...',
+                    ),
+                  ),
+                  error: (e, _) => Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: _ErrorCard(
+                      label: 'Gagal memuat wallet',
+                      onRetry: () => ref.invalidate(walletsProvider),
+                    ),
+                  ),
                 ),
                 secondChild: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -259,16 +277,25 @@ class DashboardPage extends ConsumerWidget {
                         delegate: SliverChildBuilderDelegate(
                           (context, index) => TransactionItem(
                             data: txList[index],
-                            onTap: () {},
+                            onTap: () =>
+                                _showTxDetail(context, txList[index]),
                           ),
                           childCount: txList.length,
                         ),
                       ),
                 loading: () => const SliverToBoxAdapter(
-                  child: _LoadingCard(height: 200),
+                  child: _LoadingCard(
+                    height: 120,
+                    label: 'Memuat transaksi terakhir...',
+                  ),
                 ),
-                error: (e, _) =>
-                    const SliverToBoxAdapter(child: _ErrorCard()),
+                error: (e, _) => SliverToBoxAdapter(
+                  child: _ErrorCard(
+                    label: 'Gagal memuat transaksi',
+                    onRetry: () =>
+                        ref.invalidate(recentTransactionsProvider),
+                  ),
+                ),
               ),
             ),
 
@@ -276,10 +303,15 @@ class DashboardPage extends ConsumerWidget {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () => _openAddTransaction(context),
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Transaksi'),
+        backgroundColor: AppColors.accent,
+        foregroundColor: AppColors.background,
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: const Icon(Icons.add_rounded, size: 28),
       ),
     );
   }
@@ -288,6 +320,14 @@ class DashboardPage extends ConsumerWidget {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const AddTransactionPage()),
+    );
+  }
+
+  void _showTxDetail(BuildContext context, TransactionWithDetails tx) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => TransactionDetailSheet(data: tx),
     );
   }
 
@@ -337,35 +377,95 @@ class DashboardPage extends ConsumerWidget {
 
 class _LoadingCard extends StatelessWidget {
   final double height;
-  const _LoadingCard({required this.height});
+  final String label;
+
+  const _LoadingCard({
+    required this.height,
+    this.label = 'Memuat data...',
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       height: height,
-      margin: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
-        color: AppColors.border,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.2,
+                color: AppColors.secondary,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
 class _ErrorCard extends StatelessWidget {
-  const _ErrorCard();
+  final String label;
+  final VoidCallback? onRetry;
+
+  const _ErrorCard({
+    this.label = 'Terjadi kesalahan memuat data',
+    this.onRetry,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 60,
-      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.accent.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.accent.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.accent.withOpacity(0.25)),
       ),
-      child: const Center(
-        child: Text('Terjadi kesalahan memuat data'),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline_rounded,
+              color: AppColors.accent, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.accent,
+                    fontWeight: FontWeight.w500,
+                  ),
+            ),
+          ),
+          if (onRetry != null) ...[
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: onRetry,
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.accent,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                minimumSize: const Size(44, 36),
+              ),
+              child: const Text('Coba Lagi',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ],
       ),
     );
   }

@@ -7,6 +7,7 @@ import '../../data/services/pdf_service.dart';
 import '../../data/services/notification_service.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/user_preferences_provider.dart';
+import '../category/category_page.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -186,6 +187,29 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             const _ReminderCard(),
             const SizedBox(height: 32),
 
+            // Category Management Section
+            Text('Kategori Transaksi',
+                style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 4),
+            Text(
+              'Kelola kategori pemasukan dan pengeluaran sesuai kebutuhanmu.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 16),
+            _SettingsTile(
+              icon: Icons.category_rounded,
+              iconColor: AppColors.secondary,
+              title: 'Kelola Kategori',
+              subtitle: 'Tambah, ubah, dan hapus kategori transaksi',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CategoryPage()),
+                );
+              },
+            ),
+            const SizedBox(height: 32),
+
             // App info
             Text('Informasi Aplikasi',
                 style: Theme.of(context).textTheme.titleLarge),
@@ -195,10 +219,88 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               iconColor: AppColors.textSecondary,
               title: 'Dompetku v1.1.0',
               subtitle: 'Aplikasi pencatatan keuangan pribadi (Offline)',
-              onTap: () {},
+              onTap: () => _showAboutDompetkuDialog(context),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showAboutDompetkuDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.account_balance_wallet_rounded,
+                color: AppColors.primary,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text('Tentang Dompetku'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Dompetku v1.1.0',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(color: AppColors.primary),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Aplikasi pencatatan keuangan pribadi dengan penyimpanan offline aman di perangkat Anda.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.secondary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.secondary.withOpacity(0.2),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.security_rounded,
+                      size: 20, color: AppColors.secondary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Data Anda tersimpan secara lokal tanpa sinkronisasi server eksternal.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Mengerti'),
+          ),
+        ],
       ),
     );
   }
@@ -446,7 +548,7 @@ class _ReminderCard extends ConsumerWidget {
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Notifikasi tes berhasil dikirim! 🔔'),
+                      content: Text('Notifikasi tes berhasil dikirim'),
                       backgroundColor: AppColors.primary,
                     ),
                   );
@@ -588,7 +690,11 @@ class _DateRangeCard extends StatelessWidget {
               ),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 8),
-                child: Text('—', style: TextStyle(color: AppColors.textSecondary)),
+                child: Text('s/d',
+                    style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500)),
               ),
               Expanded(
                 child: _DateButton(

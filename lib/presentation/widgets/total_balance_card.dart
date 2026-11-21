@@ -112,7 +112,7 @@ class TotalBalanceCard extends StatelessWidget {
                       label: 'Pemasukan',
                       amount: totalIncome,
                       icon: Icons.arrow_downward_rounded,
-                      color: const Color(0xFF06D6A0),
+                      color: AppColors.secondary,
                       isVisible: isBalanceVisible,
                     ),
                   ),

@@ -40,8 +40,51 @@ class StatisticsPage extends ConsumerWidget {
                 income: summary['income'] ?? 0,
                 expense: summary['expense'] ?? 0,
               ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => const SizedBox.shrink(),
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.2,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ),
+              error: (e, _) => Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.accent.withOpacity(0.25)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline_rounded,
+                        color: AppColors.accent, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Gagal memuat ringkasan bulan ini',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColors.accent,
+                              fontWeight: FontWeight.w500,
+                            ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => ref.invalidate(monthlySummaryProvider),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.accent,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                      ),
+                      child: const Text('Coba Lagi'),
+                    ),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 28),
 
@@ -53,8 +96,54 @@ class StatisticsPage extends ConsumerWidget {
               data: (data) => data.isEmpty
                   ? _EmptyChart()
                   : _ExpensePieChart(data: data),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => const SizedBox.shrink(),
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 36),
+                child: Center(
+                  child: Column(
+                    children: [
+                      CircularProgressIndicator(
+                        strokeWidth: 2.2,
+                        color: AppColors.secondary,
+                      ),
+                      SizedBox(height: 12),
+                      Text('Memuat grafik kategori...'),
+                    ],
+                  ),
+                ),
+              ),
+              error: (e, _) => Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.accent.withOpacity(0.25)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline_rounded,
+                        color: AppColors.accent, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Gagal memuat data kategori',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColors.accent,
+                              fontWeight: FontWeight.w500,
+                            ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () =>
+                          ref.invalidate(expenseByCategoryProvider),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.accent,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                      ),
+                      child: const Text('Coba Lagi'),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -122,35 +211,125 @@ class _SummaryCards extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final net = income - expense;
-    return Row(
-      children: [
-        Expanded(
-          child: _StatCard(
-            label: 'Pemasukan',
-            amount: income,
-            color: AppColors.income,
-            icon: Icons.arrow_downward_rounded,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _StatCard(
-            label: 'Pengeluaran',
-            amount: expense,
-            color: AppColors.expense,
-            icon: Icons.arrow_upward_rounded,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _StatCard(
-            label: 'Selisih',
-            amount: net,
-            color: net >= 0 ? AppColors.income : AppColors.expense,
-            icon: Icons.balance_rounded,
-          ),
-        ),
-      ],
+    final netColor = net >= 0 ? AppColors.income : AppColors.expense;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 400;
+
+        if (isCompact) {
+          return Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _StatCard(
+                      label: 'Pemasukan',
+                      amount: income,
+                      color: AppColors.income,
+                      icon: Icons.arrow_downward_rounded,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _StatCard(
+                      label: 'Pengeluaran',
+                      amount: expense,
+                      color: AppColors.expense,
+                      icon: Icons.arrow_upward_rounded,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: netColor.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: netColor.withOpacity(0.2)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: netColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.balance_rounded,
+                          color: netColor, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Selisih (Net)',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: netColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                        ),
+                        Text(
+                          net >= 0 ? 'Surplus Bulan Ini' : 'Defisit Bulan Ini',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 11,
+                                  ),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${net < 0 ? '-' : '+'} ${CurrencyFormatter.format(net.abs())}',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: netColor,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(
+              child: _StatCard(
+                label: 'Pemasukan',
+                amount: income,
+                color: AppColors.income,
+                icon: Icons.arrow_downward_rounded,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _StatCard(
+                label: 'Pengeluaran',
+                amount: expense,
+                color: AppColors.expense,
+                icon: Icons.arrow_upward_rounded,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _StatCard(
+                label: 'Selisih',
+                amount: net,
+                color: netColor,
+                icon: Icons.balance_rounded,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

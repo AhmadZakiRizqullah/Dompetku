@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,33 +24,35 @@ void main() async {
   // Initialize SharedPreferences
   final prefs = await SharedPreferences.getInstance();
 
-  // Initialize notifications
-  await NotificationService.instance.init();
-  final isReminderEnabled = prefs.getBool('reminder_enabled') ?? false;
-  if (isReminderEnabled) {
-    final hour = prefs.getInt('reminder_hour') ?? 20;
-    final minute = prefs.getInt('reminder_minute') ?? 0;
-    await NotificationService.instance.scheduleDailyReminder(
-      hour: hour,
-      minute: minute,
+  if (!kIsWeb) {
+    // Initialize notifications
+    await NotificationService.instance.init();
+    final isReminderEnabled = prefs.getBool('reminder_enabled') ?? false;
+    if (isReminderEnabled) {
+      final hour = prefs.getInt('reminder_hour') ?? 20;
+      final minute = prefs.getInt('reminder_minute') ?? 0;
+      await NotificationService.instance.scheduleDailyReminder(
+        hour: hour,
+        minute: minute,
+      );
+    }
+
+    // Set preferred orientation to portrait
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+
+    // Set system UI overlay style
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        systemNavigationBarColor: AppColors.surface,
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
     );
   }
-
-  // Set preferred orientation to portrait
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
-
-  // Set system UI overlay style
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-      systemNavigationBarColor: AppColors.surface,
-      systemNavigationBarIconBrightness: Brightness.dark,
-    ),
-  );
 
   runApp(
     ProviderScope(
@@ -75,18 +78,13 @@ class DompetkuApp extends StatelessWidget {
   }
 }
 
+final bottomNavIndexProvider = StateProvider<int>((ref) => 0);
+
 /// Main shell with bottom navigation
-class MainShell extends StatefulWidget {
+class MainShell extends ConsumerWidget {
   const MainShell({super.key});
 
-  @override
-  State<MainShell> createState() => _MainShellState();
-}
-
-class _MainShellState extends State<MainShell> {
-  int _currentIndex = 0;
-
-  final _pages = const [
+  static const List<Widget> _pages = [
     DashboardPage(),
     TransactionHistoryPage(),
     StatisticsPage(),
@@ -95,10 +93,12 @@ class _MainShellState extends State<MainShell> {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentIndex = ref.watch(bottomNavIndexProvider);
+
     return Scaffold(
       body: IndexedStack(
-        index: _currentIndex,
+        index: currentIndex,
         children: _pages,
       ),
       bottomNavigationBar: Container(
@@ -117,9 +117,9 @@ class _MainShellState extends State<MainShell> {
         ),
         child: SafeArea(
           child: NavigationBar(
-            selectedIndex: _currentIndex,
+            selectedIndex: currentIndex,
             onDestinationSelected: (i) =>
-                setState(() => _currentIndex = i),
+                ref.read(bottomNavIndexProvider.notifier).state = i,
             backgroundColor: Colors.transparent,
             elevation: 0,
             indicatorColor: AppColors.primary.withOpacity(0.1),

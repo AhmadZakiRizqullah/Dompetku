@@ -19,18 +19,18 @@ class AppColors {
   static const Color expense = Color(0xFFFE4F2D);
   static const Color transfer = Color(0xFF57B4BA);
 
-  // Chart Colors (for Pie chart sections)
+  // Harmonized Chart Palette (derived from brand and warm earthy system)
   static const List<Color> chartColors = [
-    Color(0xFF015551),
-    Color(0xFF57B4BA),
-    Color(0xFFFE4F2D),
-    Color(0xFF2A9D8F),
-    Color(0xFFE9C46A),
-    Color(0xFF264653),
-    Color(0xFFF4A261),
-    Color(0xFF8338EC),
-    Color(0xFF06D6A0),
-    Color(0xFFFFB703),
+    Color(0xFF015551), // Primary Deep Teal
+    Color(0xFF57B4BA), // Secondary Soft Teal
+    Color(0xFFFE4F2D), // Accent Vibrant Orange
+    Color(0xFF2A9D8F), // Teal Green
+    Color(0xFFE76F51), // Coral
+    Color(0xFFE9C46A), // Warm Amber
+    Color(0xFF264653), // Slate Teal
+    Color(0xFF74A57F), // Sage Green
+    Color(0xFFD4A373), // Warm Sand
+    Color(0xFF3D5A80), // Muted Blue
   ];
 }
 

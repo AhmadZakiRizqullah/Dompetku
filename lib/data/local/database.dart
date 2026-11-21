@@ -1,8 +1,4 @@
-import 'dart:io';
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
 
 import 'tables/wallets_table.dart';
 import 'tables/categories_table.dart';
@@ -10,6 +6,7 @@ import 'tables/transactions_table.dart';
 import 'daos/wallet_dao.dart';
 import 'daos/category_dao.dart';
 import 'daos/transaction_dao.dart';
+import 'connection/connection.dart' as impl;
 import '../../core/constants/app_constants.dart';
 
 part 'database.g.dart';
@@ -70,9 +67,5 @@ class AppDatabase extends _$AppDatabase {
 }
 
 LazyDatabase _openConnection() {
-  return LazyDatabase(() async {
-    final dbFolder = await getApplicationDocumentsDirectory();
-    final file = File(p.join(dbFolder.path, 'dompetku.sqlite'));
-    return NativeDatabase.createInBackground(file);
-  });
+  return LazyDatabase(() async => impl.openConnection());
 }
